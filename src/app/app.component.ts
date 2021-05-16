@@ -14,14 +14,15 @@ class Item{
  
 @Component({
     selector: 'frontapp',
-    templateUrl: './app.component.html'
+    templateUrl: './app.component.html',
+    styleUrls: ['./style.css']
 })
 
 export class AppComponent implements OnInit { 
 
     id: number;
     name: string;
-
+    url: string = 'https://localhost:44338/resource/';
     items: Item[] = [];
 
     constructor(private http: HttpClient) {
@@ -33,8 +34,13 @@ export class AppComponent implements OnInit {
     }
 
     getResources() {
-        this.http.get('https://localhost:44338/resource')
-            .subscribe((data: Item[]) => this.items = data);
+        try{
+            this.http.get(this.url,)
+                .subscribe((data: Item[]) => this.items = data);   
+        }
+        catch (exception){
+            console.log(`${exception}`);
+        } 
     }
 
     addItem(id: number, name: string): void {
@@ -47,19 +53,43 @@ export class AppComponent implements OnInit {
 
         let item: Item = new Item(id, name);
 
-        this.http.post('https://localhost:44338/resource', item).subscribe();
+        this.http.post(this.url, item, {observe: 'response'}).subscribe(response => console.log(`${response.status}`));
 
         this.items.push(new Item(id, name));
     }
 
-    saveItem(item: Item): void {
+    saveItem(id: number): void {
+    
+    let value: string = null;
+    let sendItem: Item = null;
 
-        this.http.put('https://localhost:44338/resource/', item).subscribe();
+    const table: HTMLTableElement = document.querySelector('#tbl');
+    const rows = table.tBodies[0].rows;
+
+    Array.from(rows).forEach((row) => { 
+       const tds =  Array.from(row.cells).map((td) => td.textContent) 
+       
+       if (tds[0] == id.toString()) 
+         value = tds[1];});
+
+        if (value == null) { this.getResources(); return; }
+
+        this.items.forEach((item) => {
+            if (item.id == id)
+            {
+                item.name = value;
+                sendItem = item;
+            }
+        });
+
+        if (sendItem == null) return;
+
+        this.http.put(this.url, sendItem, {observe: 'response'}).subscribe(response => console.log(`${response.status}`));
     }
 
     removeItem(resource: Item){
 
-        this.http.delete('https://localhost:44338/resource/' + resource.id).subscribe();
+        this.http.delete(this.url + resource.id, {observe: 'response'}).subscribe(response => console.log(`${response.status}`));
 
         this.items.forEach( (item, index) => {
           if(item === resource) this.items.splice(index,1);
